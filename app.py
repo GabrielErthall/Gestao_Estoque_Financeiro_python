@@ -93,7 +93,36 @@ def vender_produto(id):
             <input type="submit" value="Vender">
         </form>
     """
-    
 
+@app.route("/nova-venda", methods=["GET", "POST"])
+def nova_venda():
+    session = Session()
+    produtos = session.query(Produto).all()
+
+    if request.method == "POST":
+        itens = []
+        total = 0
+
+        for produto in produtos:
+            qtd= int(request.form.get(f"quantidade_{produto.id}", 0))
+            if qtd > 0:
+                if qtd > produto.quantidade:
+                    return f"Estoque insuficiente para {produto.nome}"
+                produto.quantidade -= qtd
+                item = ItemVenda(
+                    produto_id=produto.id,
+                    quantidade=qtd,
+                    preco_unitario=produto.preco
+                )
+
+                itens.append(item)
+                total += qtd * produto.preco
+        
+        venda = Venda(total=total, itens=itens)
+        session.add(venda)
+        session.commit()
+        return redirect(url_for("lsitar_produtos"))
+    return render_template("nova_venda.html", produtos=produtos)
+    
 if __name__ == "__main__":
     app.run(debug=True)

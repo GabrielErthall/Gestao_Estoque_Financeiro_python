@@ -1,0 +1,17 @@
+<h1>Nova Venda</h1>
+<form method="post">
+    <table>
+        <tr>
+            <th>Produtos</th><th>Preço</th><th>Estoque</th><th>Qauntidade</th>
+        </tr>
+        {% for p in produtos %}
+        <tr>
+            <td>{{ p.nome }}</td>
+            <td>R$ {{ p.preco }}</td>
+            <td>{{ p.quantidade }}</td>
+            <td><inmput type="number" name="quanitdade_{{ p.id }}" min="0"></inmput></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <input type="submit" value="Finalizar Venda">
+</form>
