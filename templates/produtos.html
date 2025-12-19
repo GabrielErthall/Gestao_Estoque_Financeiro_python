@@ -9,7 +9,7 @@
     <ul>
         {% for p in produtos %}
             <li>
-                {{ p.nome }} -- {{ p.categoria }} - {{ p.tamanho }} - {{ p.cor }} - {{ p.quantidade }}
+                {{ p.nome }} -- {{ p.categoria }} - {{ p.tamanho }} - {{ p.cor }} - {{ p.quantidade }} - R$ {{ p.preco }}
                 <a href="/editar/{{ p.id }}">[Editar]</a>
                 <a href="/excluir/{{ p.id }}">[Excluir]</a>
                  <a href="/vender/{{ p.id }}">[Vender]</a>

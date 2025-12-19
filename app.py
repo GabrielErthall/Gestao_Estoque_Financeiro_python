@@ -15,21 +15,29 @@ def listar_produtos():
 
 @app.route("/cadastrar", methods=["GET", "POST"])
 def cadastrar_produto():
+    session = Session()
     if request.method == "POST":
-        session = Session()
+        nome = request.form["nome"]
+        categoria = request.form["categoria"]
+        tamanho = request.form["tamanho"]
+        cor = request.form["cor"]
+        quantidade = int(request.form["quantidade"])
+        preco = float(request.form["preco"])
+
         novo_produto = Produto(
-            nome=request.form["nome"],
-            categoria=request.form["categoria"],
-            tamanho=request.form["tamanho"],
-            cor=request.form["cor"],
-            quantidade=int(request.form["quantidade"])
-        )
+            nome=nome,
+            categoria=categoria,
+            tamanho=tamanho,
+            cor=cor,
+            quantidade=quantidade,
+            preco=preco
+            )
         session.add(novo_produto)
         session.commit()
         return redirect(url_for("listar_produtos"))
 
     produto_vazio = Produto(nome="", categoria="", tamanho="", cor="", quantidade=0)
-    return render_template("formulario.html", titulo="Cadastrar Produto", produto=produto_vazio)
+    return render_template("formulario.html", titulo="Cadastrar Produto", produto={})
 
 @app.route("/excluir/<int:id>")
 def escluir_produto(id):
@@ -57,6 +65,7 @@ def editar_produto(id):
         produto.tamanho = request.form["tamanho"]
         produto.cor = request.form["cor"]
         produto.quantidade = int(request.form["quantidade"])
+        produto.preco = float(request.form["preco"]) 
         session.commit()
         return redirect(url_for("listar_produtos"))
     return render_template("formulario.html", titulo="Editar Produto", produto=produto)
