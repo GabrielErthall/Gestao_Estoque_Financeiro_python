@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Editar Venda</title>
+</head>
+<body>
+    <h1>editar Venda ID {{ venda.id }}</h1>
+    <form method=""post>
+        <ul>
+            {% for item in venda.itens %}
+            <li>
+                Produto ID {{ item.produto_id }} -
+                Quantidade: <input type="number" name="quantidade" id="item_id" value="{{ item.quantidade }}">
+                Preço unitário: <input type="text" name="preco_{{ item.id }}" value="{{ item.preco_unitario }}">
+            </li>
+            {% endfor %}
+        </ul>
+        <input type="submit" value="Salvar Alterações">
+    </form>
+    <div style="margin-top: 20px;">
+        <a href="{{ url_for('relatorio_vendas') }}">Voltar ao Relatório</a>
+    </div>
+</body>
+</html>

@@ -19,17 +19,17 @@ class Venda(Base):
     __tablename__ = "vendas"
     id = Column(Integer, primary_key=True)
     data = Column(DateTime, default=datetime.now)
-    total = Column(Float, nullable=False)
+    total = Column(Float)
 
     itens = relationship("ItemVenda", back_populates="venda")
+
 
 class ItemVenda(Base):
     __tablename__ = "itens_venda"
     id = Column(Integer, primary_key=True)
-    venda_id = Column(Integer, ForeignKey("vendas.id"))
     produto_id = Column(Integer, ForeignKey("produtos.id"))
-    quantidade = Column(Integer, nullable=False)
-    preco_unitario = Column(Float, nullable=False)
+    venda_id = Column(Integer, ForeignKey("vendas.id"))
+    quantidade = Column(Integer)
+    preco_unitario = Column(Float)
 
     venda = relationship("Venda", back_populates="itens")
-    produtos = relationship("Produto")

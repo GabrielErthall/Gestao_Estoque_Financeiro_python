@@ -9,7 +9,27 @@ Session = sessionmaker(bind=engine)
 @app.route("/produtos")
 def listar_produtos():
     session = Session()
-    produtos = session.query(Produto).all()
+    query = session.query(Produto)
+
+    nome = request.args.get("nome")
+    categoria = request.args.get("cateegoria")
+    cor = request.args.get("cor")
+    preco = request.args.get("preco")
+    produto_id = request.args.get("id")
+
+    if nome:
+        query = query.filter(Produto.nome.ilike(f"%{nome}%"))
+    if categoria:
+        query = query.filter(Produto.categoria.ilike(f"%{categoria}%"))
+    if cor:
+        query = query.filter(Produto.cor.ilike(f"%{cor}%"))
+    if preco:
+        query = query.filter(Produto.preco == float(preco))
+    if produto_id:
+        query = query.filter(Produto.id == int(produto_id))
+    
+    produtos = query.all()
+    categorias = [c[0] for c in session.query(Produto.categoria).distinct().all()]
     return render_template("produtos.html", produtos=produtos)
 
 
@@ -168,8 +188,60 @@ def buscar_produto():
 @app.route("/relatorio-vendas")
 def relatorio_vendas():
     session = Session()
-    vendas = session.query(Venda).order_by(Venda.data.desc()).limit(20).all()
+    query = session.query(Venda)
+
+    # filtros
+    venda_id = request.args.get("id")
+    preco = request.args.get("preco")
+    data = request.args.get("data")  # exemplo: "2026-01-06"
+
+    if venda_id:
+        query = query.filter(Venda.id == int(venda_id))
+    if preco:
+        query = query.filter(Venda.total == float(preco))
+    if data:
+        query = query.filter(Venda.data.like(f"%{data}%"))
+
+    vendas = query.order_by(Venda.data.desc()).limit(50).all()
     return render_template("relatorio_vendas.html", vendas=vendas)
+
+@app.route("/excluir-venda/<int:id>")
+def excluir_venda(id):
+    session = Session()
+    venda = session.query(Venda).get(id)
+
+    if not venda:
+        return f"<h1>Venda com ID {id} não encontrada.</h1>"
+    
+    for item in venda.itens:
+        session.delete(item)
+    
+    session.delete(venda)
+    session.commit()
+    return redirect(url_for("relatorio_vendas"))
+
+@app.route("/editar-venda/<int:id>", methods=["GET", "POST"])
+def editar_venda(id):
+    session = Session()
+    venda = session.query(Venda).get(id)
+
+    if not venda:
+        return f"<h1>Venda com ID {id} não encontrada</h1>"
+    
+    if request.method == "POST":
+        total = 0
+        for item in venda.itens:
+            qtd = int(request.form.get(f"quantidade_{item.id}", item.quantidade))
+            preco = float(request.form.get(f"preco_{item.id}", item.preco_unitario))
+
+            item.quantidade = qtd
+            item.preco_unitario = preco
+            total += qtd * preco
+        
+        venda.total = total
+        session.commit()
+        return redirect(url_for("relatorio_vendas"))
+    return render_template("editar_venda.html", venda=venda)
 
  
 if __name__ == "__main__":

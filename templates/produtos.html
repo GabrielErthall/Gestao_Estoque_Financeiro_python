@@ -4,6 +4,49 @@
     <title>Lista de Produtos</title>
 </head>
 <body>
+    <h2>Buscar Produtos</h2>
+<form method="get" action="{{ url_for('listar_produtos') }}">
+    Nome: <input type="text" name="nome" placeholder="Digite parte do nome">
+    Categoria: <input type="text" id="categoria" name="categoria" placeholder="Digite categoria">
+    Cor: <input type="text" name="cor">
+    Preço: <input type="text" name="preco">
+    ID: <input type="text" name="id">
+    <input type="submit" value="Filtrar">
+</form>
+
+<!-- Lista de categorias para autocomplete -->
+<ul id="listaCategorias" style="border:1px solid #ccc; max-width:200px; display:none; position:absolute; background:#fff; list-style:none; padding:0;">
+    {% for c in categorias %}
+        <li onclick="selecionarCategoria('{{ c }}')" style="padding:5px; cursor:pointer;">{{ c }}</li>
+    {% endfor %}
+</ul>
+
+<script>
+    const inputCategoria = document.getElementById("categoria");
+    const lista = document.getElementById("listaCategorias");
+
+    inputCategoria.addEventListener("keyup", function() {
+        let filtro = inputCategoria.value.toLowerCase();
+        let itens = lista.querySelectorAll("li");
+        let algumVisivel = false;
+
+        itens.forEach(li => {
+            if (li.innerText.toLowerCase().includes(filtro)) {
+                li.style.display = "block";
+                algumVisivel = true;
+            } else {
+                li.style.display = "none";
+            }
+        });
+
+        lista.style.display = algumVisivel ? "block" : "none";
+    });
+
+    function selecionarCategoria(valor) {
+        inputCategoria.value = valor;
+        lista.style.display = "none";
+    }
+</script>
     <h1>Lista de Produtos</h1>
     <a href="/cadastrar">[Cadastrar novo produto]</a>
     <ul>

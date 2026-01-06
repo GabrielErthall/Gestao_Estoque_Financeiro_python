@@ -15,12 +15,24 @@
     </script>
 </head>
 <body>
+    <h2>Filtrar Vendas</h2>
+    <form method="get" action="{{ url_for('relatorio_vendas') }}">
+        ID da Venda: <input type="text" name="id">
+        Valor Total: <input type="text" name="preco">
+        Data (AAAA-MM-DD): <input type="text" name="data">
+        <input type="submit" value="Filtrar">
+    </form>
+
     <h1>Relatório de Vendas</h1>
 
     {% for v in vendas %}
     <div class="venda">
         <p><b>ID:</b> {{ v.id }} | <b>Data:</b> {{ v.data.strftime("%d/%m/%Y %H:%M") }} | <b>Total:</b> R$ {{ "%.2f"|format(v.total) }}</p>
+        
         <span class="toggle" onclick="toggleDetalhes({{ v.id }})">Ver detalhes</span>
+        <a href="{{ url_for('editar_venda', id=v.id) }}" style="margin-left:10px; color:green;">[Editar]</a>
+        <a href="{{ url_for('excluir_venda', id=v.id) }}" style="margin-left:10px; color:red;" onclick="return confirm('Tem certeza que deseja excluir esta venda?');">[Excluir]</a>
+
         <div class="detalhes" id="detalhes_{{ v.id }}">
             <ul>
                 {% for item in v.itens %}
@@ -32,5 +44,12 @@
         </div>
     </div>
     {% endfor %}
+
+    <div style="margin-top:20px; text-align:center;">
+        <a href="{{ url_for('listar_produtos') }}" 
+           style="padding: 10px 20px; background-color: #f44336; color: white; text-decoration: none; border-radius: 5px;">
+            Voltar para Produtos
+        </a>
+    </div>
 </body>
 </html>
