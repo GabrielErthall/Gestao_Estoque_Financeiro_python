@@ -1,17 +1,48 @@
-<h1>Nova Venda</h1>
-<form method="post">
-    <table>
-        <tr>
-            <th>Produtos</th><th>Preço</th><th>Estoque</th><th>Qauntidade</th>
-        </tr>
-        {% for p in produtos %}
-        <tr>
-            <td>{{ p.nome }}</td>
-            <td>R$ {{ p.preco }}</td>
-            <td>{{ p.quantidade }}</td>
-            <td><inmput type="number" name="quanitdade_{{ p.id }}" min="0"></inmput></td>
-        </tr>
-        {% endfor %}
-    </table>
-    <input type="submit" value="Finalizar Venda">
-</form>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nova Venda</title>
+    <script>
+        async function buscarProduto() {
+            let termo = document.getElementById("busca").value;
+            let resp = await fetch(`/buscar-produto?q=${termo}`);
+            let dados = await resp.json();
+
+            if (dados.erro) {
+                alert("Produto não encontrado");
+            } else {
+                let tabela = document.getElementById("itens");
+                let linha = tabela.insertRow();
+
+                linha.innerHTML = `
+                    <td>${dados.id}<input type="hidden" name="produto_id[]" value="${dados.id}"></td>
+                    <td>${dados.nome}</td>
+                    <td>${dados.categoria}</td>
+                    <td>${dados.tamanho}</td>
+                    <td>${dados.cor}</td>
+                    <td>${dados.quantidade}</td>
+                    <td><input type="number" name="quantidade[]" min="1"></td>
+                    <td><input type="text" name="preco_unitario[]" value="${dados.preco}"></td>
+                `;
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Nova Venda</h1>
+    <form method="post">
+        <input type="text" id="busca" placeholder="Digite ID ou nome do produto">
+        <button type="button" onclick="buscarProduto()">Adicionar Produto</button>
+
+        <table border="1" id="itens" style="margin-top:20px; width:100%;">
+            <tr>
+                <th>ID</th><th>Nome</th><th>Categoria</th><th>Tamanho</th><th>Cor</th><th>Estoque</th><th>Quantidade</th><th>Preço unitário</th>
+            </tr>
+        </table>
+
+        <div style="margin-top:20px; text-align:center;">
+            <input type="submit" value="Finalizar Venda">
+        </div>
+    </form>
+</body>
+</html>

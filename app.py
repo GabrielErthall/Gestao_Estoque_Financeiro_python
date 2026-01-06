@@ -1,6 +1,6 @@
 from flask import Flask, request, redirect, url_for, render_template
 from sqlalchemy.orm import sessionmaker
-from models import Produto, Venda
+from models import Produto, Venda, ItemVenda
 from db import engine
 
 app = Flask(__name__)
@@ -106,32 +106,65 @@ def vender_produto(id):
 @app.route("/nova-venda", methods=["GET", "POST"])
 def nova_venda():
     session = Session()
-    produtos = session.query(Produto).all()
 
     if request.method == "POST":
         itens = []
         total = 0
 
-        for produto in produtos:
-            qtd= int(request.form.get(f"quantidade_{produto.id}", 0))
-            if qtd > 0:
-                if qtd > produto.quantidade:
-                    return f"Estoque insuficiente para {produto.nome}"
-                produto.quantidade -= qtd
-                item = ItemVenda(
-                    produto_id=produto.id,
-                    quantidade=qtd,
-                    preco_unitario=produto.preco
-                )
+        produtos_ids = request.form.getlist("produto_id")
+        quantidades = request.form.getlist("quantidade")
+        precos = request.form.getlist("preco_unitario")
 
-                itens.append(item)
-                total += qtd * produto.preco
-        
+        if not (len(produtos_ids) == len(quantidades) == len(precos)):
+            return "<h1>Erro: dados incompletos no formulário.</h1>"
+
+        for i in range(len(produtos_ids)):
+            produto = session.query(Produto).get(int(produtos_ids[i]))
+            qtd = int(quantidades[i])
+            preco_unitario = float(precos[i])
+
+            if qtd > produto.quantidade:
+                return f"<h1>Estoque insuficiente para {produto.nome}</h1>"
+
+            produto.quantidade -= qtd
+            item = ItemVenda(
+                produto_id=produto.id,
+                quantidade=qtd,
+                preco_unitario=preco_unitario
+            )
+            itens.append(item)
+            total += qtd * preco_unitario
+
         venda = Venda(total=total, itens=itens)
         session.add(venda)
         session.commit()
-        return redirect(url_for("lsitar_produtos"))
-    return render_template("nova_venda.html", produtos=produtos)
+        return redirect(url_for("listar_produtos"))
+
+    return render_template("nova_venda.html")
+
+@app.route("/buscar-produto")
+def buscar_produto():
+    session = Session()
+    termo = request.args.get("q", "")
+
+    produto = None
+    if termo.isdigit():
+        produto = session.query(Produto).get(int(termo))
+    else:
+        produto = session.query(Produto).filter(Produto.nome.ilike(f"%{termo}%")).first()
     
+    if produto:
+        return {
+            "id": produto.id,
+            "nome": produto.nome,
+            "categoria": produto.categoria,
+            "tamanho": produto.tamanho,
+            "cor": produto.cor,
+            "quantidade": produto.quantidade,
+            "preco": produto.preco
+        }
+    return {"erro": "Produto não encontrado"}
+
+ 
 if __name__ == "__main__":
     app.run(debug=True)

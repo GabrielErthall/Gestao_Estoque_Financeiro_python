@@ -9,12 +9,16 @@
     <ul>
         {% for p in produtos %}
             <li>
-                {{ p.nome }} -- {{ p.categoria }} - {{ p.tamanho }} - {{ p.cor }} - {{ p.quantidade }} - R$ {{ p.preco }}
+                ID: {{ p.id }} - {{ p.nome }} -- {{ p.categoria }} - {{ p.tamanho }} - {{ p.cor }} - {{ p.quantidade }} - R$ {{ p.preco }}
                 <a href="/editar/{{ p.id }}">[Editar]</a>
                 <a href="/excluir/{{ p.id }}">[Excluir]</a>
-                 <a href="/vender/{{ p.id }}">[Vender]</a>
             </li>
         {% endfor %}
     </ul>
+    <div style="text-algin: center; margin-top: 30px:">
+        <a href="{{ url_for('nova_venda') }}" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
+            Vender
+        </a>
+    </div>
 </body>
 </html>
