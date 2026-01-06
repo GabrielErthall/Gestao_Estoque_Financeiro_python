@@ -165,6 +165,12 @@ def buscar_produto():
         }
     return {"erro": "Produto não encontrado"}
 
+@app.route("/relatorio-vendas")
+def relatorio_vendas():
+    session = Session()
+    vendas = session.query(Venda).order_by(Venda.data.desc()).limit(20).all()
+    return render_template("relatorio_vendas.html", vendas=vendas)
+
  
 if __name__ == "__main__":
     app.run(debug=True)
