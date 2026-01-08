@@ -58,13 +58,33 @@ def listar_produtos():
 def cadastrar_produto():
     session = Session()
     if request.method == "POST":
-        nome = request.form["nome"]
-        categoria = request.form["categoria"]
-        tamanho = request.form["tamanho"]
-        cor = request.form["cor"]
-        quantidade = int(request.form["quantidade"])
-        preco = float(request.form["preco"])
+        nome = request.form.get("nome", "").strip()
+        categoria = request.form.get("categoria", "").strip()
+        tamanho = request.form.get("tamanho", "").strip()
+        cor = request.form.get("cor", "").strip()
+        quantidade_raw = request.form.get("quantidade", "").strip()
+        preco_raw = request.form.get("preco", "").strip()
 
+        # Valida campos obrigatórios
+        if not nome or not categoria or not tamanho or not cor:
+            return render_template("erro.html", mensagem="Todos os campos de texto são obrigatórios.", voltar="listar_produtos")
+
+        # Valida quantidade
+        if not quantidade_raw.isdigit():
+            return render_template("erro.html", mensagem="Quantidade inválida. Digite um número inteiro.", voltar="listar_produtos")
+        quantidade = int(quantidade_raw)
+
+        # Valida preço
+        try:
+            preco = float(preco_raw)
+        except ValueError:
+            return render_template("erro.html", mensagem="Preço inválido. Digite um número válido.", voltar="listar_produtos")
+
+        # Valida valores negativos
+        if quantidade < 0 or preco < 0:
+            return render_template("erro.html", mensagem="Quantidade e preço não podem ser negativos.", voltar="listar_produtos")
+
+        # Cria e salva produto
         novo_produto = Produto(
             nome=nome,
             categoria=categoria,
@@ -72,12 +92,11 @@ def cadastrar_produto():
             cor=cor,
             quantidade=quantidade,
             preco=preco
-            )
+        )
         session.add(novo_produto)
         session.commit()
         return redirect(url_for("listar_produtos"))
 
-    produto_vazio = Produto(nome="", categoria="", tamanho="", cor="", quantidade=0)
     return render_template("formulario.html", titulo="Cadastrar Produto", produto={})
 
 @app.route("/excluir/<int:id>")
@@ -147,47 +166,47 @@ def vender_produto(id):
 @app.route("/nova-venda", methods=["GET", "POST"])
 def nova_venda():
     session = Session()
+    try:
+        if request.method == "POST":
+            itens = []
+            total = 0
 
-    if request.method == "POST":
-        itens = []
-        total = 0
+            produtos_ids = request.form.getlist("produto_id[]")
+            quantidades = request.form.getlist("quantidade[]")
+            precos = request.form.getlist("preco_unitario[]")
+            forma_pagamento = request.form.get("forma_pagamento")
 
-        produtos_ids = request.form.getlist("produto_id[]")
-        quantidades = request.form.getlist("quantidade[]")
-        precos = request.form.getlist("preco_unitario[]")
-        forma_pagamento = request.form.get("forma_pagamento")
+            if not (len(produtos_ids) == len(quantidades) == len(precos)):
+                return "<h1>Erro: dados incompletos no formulário.</h1>"
 
-        if not (len(produtos_ids) == len(quantidades) == len(precos)):
-            return "<h1>Erro: dados incompletos no formulário.</h1>"
+            for i in range(len(produtos_ids)):
+                produto = session.query(Produto).get(int(produtos_ids[i]))
+                qtd = int(quantidades[i])
+                preco_unitario = float(precos[i])
 
-        for i in range(len(produtos_ids)):
-            produto = session.query(Produto).get(int(produtos_ids[i]))
-            qtd = int(quantidades[i])
-            preco_unitario = float(precos[i])
+                if qtd > produto.quantidade:
+                    return f"<h1>Estoque insuficiente para {produto.nome}</h1>"
 
-            if qtd > produto.quantidade:
-                return f"<h1>Estoque insuficiente para {produto.nome}</h1>"
+                produto.quantidade -= qtd
+                item = ItemVenda(
+                    produto_id=produto.id,
+                    quantidade=qtd,
+                    preco_unitario=preco_unitario
+                )
+                itens.append(item)
+                total += qtd * preco_unitario
 
-            produto.quantidade -= qtd
-            item = ItemVenda(
-                produto_id=produto.id,
-                quantidade=qtd,
-                preco_unitario=preco_unitario
-            )
-            itens.append(item)
-            total += qtd * preco_unitario
+            if not itens or total <= 0:
+                return render_template("erro_venda.html")
 
-        
-        if not itens or total <= 0:
-            return "<h1>Erro: não é possível criar uma venda sem produtos ou com valor 0.</h1>"
+            venda = Venda(total=total, itens=itens, forma_pagamento=forma_pagamento)
+            session.add(venda)
+            session.commit()
+            return redirect(url_for("relatorio_vendas"))
 
-        
-        venda = Venda(total=total, itens=itens, forma_pagamento=forma_pagamento)
-        session.add(venda)
-        session.commit()
-        return redirect(url_for("relatorio_vendas"))
-
-    return render_template("nova_venda.html")
+        return render_template("nova_venda.html")
+    finally:
+        session.close()
 
 
 @app.route("/buscar-produto")

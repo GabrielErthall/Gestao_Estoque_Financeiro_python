@@ -49,24 +49,6 @@
         <input type="submit" value="Filtrar">
     </form>
 
-
-    <title>Relatório de Vendas</title>
-    <style>
-        .detalhes { display: none; margin-left: 20px; }
-        .venda { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
-        .toggle { cursor: pointer; color: blue; text-decoration: underline; }
-        .resumo { margin-top: 20px; padding: 10px; border: 1px solid #aaa; background: #f9f9f9; }
-    </style>
-    <script>
-        function toggleDetalhes(id) {
-            let div = document.getElementById("detalhes_" + id);
-            div.style.display = (div.style.display === "none") ? "block" : "none";
-        }
-    </script>
-</head>
-<body>
-    <h2>Filtrar Vendas</h2>
-
     <h1>Relatório de Vendas</h1>
 
     <!-- Resumo geral -->
@@ -121,6 +103,8 @@
             Voltar para Produtos
         </a>
     </div>
+
+    <!-- Paginação -->
     <div class="paginacao" style="text-align:center; margin-top:20px;">
         {% set start_page = page - 3 if page - 3 > 1 else 1 %}
         {% set end_page = page + 3 if page + 3 < total_pages else total_pages %}
@@ -137,23 +121,6 @@
                 data_fim=request.args.get('data_fim')) }}">
                 Anterior
             </a>
-        {% endif %}
-
-        {% if start_page > 1 %}
-            <a href="{{ url_for('relatorio_vendas',
-                page=1,
-                ordenar_por=request.args.get('ordenar_por'),
-                ordem=request.args.get('ordem'),
-                forma_pagamento=request.args.get('forma_pagamento'),
-                id=request.args.get('id'),
-                preco=request.args.get('preco'),
-                data_inicio=request.args.get('data_inicio'),
-                data_fim=request.args.get('data_fim')) }}">
-                1
-            </a>
-            {% if start_page > 2 %}
-                ...
-            {% endif %}
         {% endif %}
 
         {% for p in range(start_page, end_page + 1) %}
@@ -173,23 +140,6 @@
                 </a>
             {% endif %}
         {% endfor %}
-
-        {% if end_page < total_pages %}
-            {% if end_page < total_pages - 1 %}
-                ...
-            {% endif %}
-            <a href="{{ url_for('relatorio_vendas',
-                page=total_pages,
-                ordenar_por=request.args.get('ordenar_por'),
-                ordem=request.args.get('ordem'),
-                forma_pagamento=request.args.get('forma_pagamento'),
-                id=request.args.get('id'),
-                preco=request.args.get('preco'),
-                data_inicio=request.args.get('data_inicio'),
-                data_fim=request.args.get('data_fim')) }}">
-                {{ total_pages }}
-            </a>
-        {% endif %}
 
         {% if page < total_pages %}
             <a href="{{ url_for('relatorio_vendas',

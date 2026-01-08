@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Erro</title>
+    <style>
+        body { font-family: Arial; text-align: center; margin-top: 50px; }
+        .mensagem { color: red; font-size: 20px; margin-bottom: 20px; }
+        .botao {
+            padding: 10px 20px;
+            background-color: #f44336;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="mensagem">
+        <h1>{{ mensagem }}</h1>
+    </div>
+    <a href="{{ url_for(voltar) }}" class="botao">Voltar</a>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Erro na Venda</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        .erro { color: red; font-size: 20px; margin-bottom: 20px; }
+        a.botao {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #f44336;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        a.botao:hover { background-color: #d32f2f; }
+    </style>
+</head>
+<body>
+    <div class="erro">
+        <h1>Erro: não é possível criar uma venda sem produtos ou com valor 0.</h1>
+    </div>
+    <a href="{{ url_for('listar_produtos') }}" class="botao">Voltar para Produtos</a>
+</body>
+</html>
