@@ -218,7 +218,7 @@ def relatorio_vendas():
     session = Session()
     query = session.query(Venda)
 
-    # Filtros
+    # Filtros de data
     data_inicio = request.args.get("data_inicio")
     data_fim = request.args.get("data_fim")
 
@@ -228,7 +228,17 @@ def relatorio_vendas():
 
     if data_fim:
         data_fim = datetime.strptime(data_fim, "%Y-%m-%d")
+        # incluir fim do dia, se quiser abranger o dia inteiro:
+        data_fim = datetime.combine(data_fim, datetime.max.time())
         query = query.filter(Venda.data_hora <= data_fim)
+
+    # Filtro de forma de pagamento
+    forma_pagamento = request.args.get("forma_pagamento")
+    if forma_pagamento:  # só aplica se veio algo
+        # se quiser igualdade exata:
+        query = query.filter(Venda.forma_pagamento == forma_pagamento)
+        # ou, se precisar ser case-insensitive:
+        # query = query.filter(Venda.forma_pagamento.ilike(forma_pagamento))
 
     # Ordenação
     ordenar_por = request.args.get("ordenar_por", "data")
@@ -241,21 +251,18 @@ def relatorio_vendas():
     else:
         coluna = Venda.data_hora
 
-    if ordem == "asc":
-        query = query.order_by(coluna.asc())
-    else:
-        query = query.order_by(coluna.desc())
+    query = query.order_by(coluna.asc() if ordem == "asc" else coluna.desc())
 
     # Paginação
     page = request.args.get("page", 1, type=int)
     per_page = 20
     offset = (page - 1) * per_page
 
-    vendas = query.limit(per_page).offset(offset).all()
     total = query.count()
+    vendas = query.limit(per_page).offset(offset).all()
     total_pages = (total + per_page - 1) // per_page
 
-    # Resumo
+    # Resumos (com base nas vendas paginadas)
     soma_total = sum(v.total for v in vendas)
 
     resumo_pagamento = {}
@@ -267,9 +274,8 @@ def relatorio_vendas():
         for item in v.itens:
             produto = session.query(Produto).get(item.produto_id)
             if produto:
-                categoria = produto.categoria
                 valor = item.quantidade * item.preco_unitario
-                resumo_categoria[categoria] = resumo_categoria.get(categoria, 0) + valor
+                resumo_categoria[produto.categoria] = resumo_categoria.get(produto.categoria, 0) + valor
 
     return render_template("relatorio_vendas.html",
                            vendas=vendas,
