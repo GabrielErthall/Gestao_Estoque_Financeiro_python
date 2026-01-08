@@ -18,8 +18,9 @@ class Produto(Base):
 class Venda(Base):
     __tablename__ = "vendas"
     id = Column(Integer, primary_key=True)
-    data = Column(DateTime, default=datetime.now)
+    data_hora = Column(DateTime, default=datetime.now)
     total = Column(Float)
+    forma_pagamento = Column(String)
 
     itens = relationship("ItemVenda", back_populates="venda")
 

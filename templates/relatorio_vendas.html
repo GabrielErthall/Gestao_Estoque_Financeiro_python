@@ -6,6 +6,7 @@
         .detalhes { display: none; margin-left: 20px; }
         .venda { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
         .toggle { cursor: pointer; color: blue; text-decoration: underline; }
+        .resumo { margin-top: 20px; padding: 10px; border: 1px solid #aaa; background: #f9f9f9; }
     </style>
     <script>
         function toggleDetalhes(id) {
@@ -16,18 +17,77 @@
 </head>
 <body>
     <h2>Filtrar Vendas</h2>
+
     <form method="get" action="{{ url_for('relatorio_vendas') }}">
-        ID da Venda: <input type="text" name="id">
-        Valor Total: <input type="text" name="preco">
-        Data (AAAA-MM-DD): <input type="text" name="data">
+        ID da Venda: <input type="text" name="id" value="{{ request.args.get('id', '') }}">
+        Valor Total: <input type="text" name="preco" value="{{ request.args.get('preco', '') }}">
+        Data Início: <input type="date" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}">
+        Data Fim: <input type="date" name="data_fim" value="{{ request.args.get('data_fim', '') }}">
+
+        Ordenar por:
+        <select name="ordenar_por">
+            <option value="data" {% if request.args.get('ordenar_por') == 'data' %}selected{% endif %}>Data</option>
+            <option value="id" {% if request.args.get('ordenar_por') == 'id' %}selected{% endif %}>ID</option>
+            <option value="total" {% if request.args.get('ordenar_por') == 'total' %}selected{% endif %}>Valor Total</option>
+        </select>
+
+        Direção:
+        <select name="ordem">
+            <option value="desc" {% if request.args.get('ordem') == 'desc' %}selected{% endif %}>Decrescente</option>
+            <option value="asc" {% if request.args.get('ordem') == 'asc' %}selected{% endif %}>Crescente</option>
+        </select>
+
         <input type="submit" value="Filtrar">
     </form>
 
+
+    <title>Relatório de Vendas</title>
+    <style>
+        .detalhes { display: none; margin-left: 20px; }
+        .venda { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+        .toggle { cursor: pointer; color: blue; text-decoration: underline; }
+        .resumo { margin-top: 20px; padding: 10px; border: 1px solid #aaa; background: #f9f9f9; }
+    </style>
+    <script>
+        function toggleDetalhes(id) {
+            let div = document.getElementById("detalhes_" + id);
+            div.style.display = (div.style.display === "none") ? "block" : "none";
+        }
+    </script>
+</head>
+<body>
+    <h2>Filtrar Vendas</h2>
+
     <h1>Relatório de Vendas</h1>
 
+    <!-- Resumo geral -->
+    <div class="resumo">
+        <h3>Total no Período: R$ {{ "%.2f"|format(soma_total) }}</h3>
+
+        <h4>Resumo por Forma de Pagamento</h4>
+        <ul>
+            {% for forma, valor in resumo_pagamento.items() %}
+                <li>{{ forma }}: R$ {{ "%.2f"|format(valor) }}</li>
+            {% endfor %}
+        </ul>
+
+        <h4>Resumo por Categoria</h4>
+        <ul>
+            {% for categoria, valor in resumo_categoria.items() %}
+                <li>{{ categoria }}: R$ {{ "%.2f"|format(valor) }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Lista de vendas -->
     {% for v in vendas %}
     <div class="venda">
-        <p><b>ID:</b> {{ v.id }} | <b>Data:</b> {{ v.data.strftime("%d/%m/%Y %H:%M") }} | <b>Total:</b> R$ {{ "%.2f"|format(v.total) }}</p>
+        <p>
+            <b>ID:</b> {{ v.id }} | 
+            <b>Data:</b> {{ v.data_hora.strftime("%d/%m/%Y %H:%M") }} | 
+            <b>Total:</b> R$ {{ "%.2f"|format(v.total) }} | 
+            <b>Pagamento:</b> {{ v.forma_pagamento }}
+        </p>
         
         <span class="toggle" onclick="toggleDetalhes({{ v.id }})">Ver detalhes</span>
         <a href="{{ url_for('editar_venda', id=v.id) }}" style="margin-left:10px; color:green;">[Editar]</a>
@@ -37,7 +97,8 @@
             <ul>
                 {% for item in v.itens %}
                 <li>
-                    Produto ID {{ item.produto_id }} — Quantidade: {{ item.quantidade }} — Preço unitário: R$ {{ "%.2f"|format(item.preco_unitario) }}
+                    Produto ID {{ item.produto_id }} — Quantidade: {{ item.quantidade }} — 
+                    Preço unitário: R$ {{ "%.2f"|format(item.preco_unitario) }}
                 </li>
                 {% endfor %}
             </ul>
@@ -50,6 +111,85 @@
            style="padding: 10px 20px; background-color: #f44336; color: white; text-decoration: none; border-radius: 5px;">
             Voltar para Produtos
         </a>
+    </div>
+    <div class="paginacao" style="text-align:center; margin-top:20px;">
+        {% set start_page = page - 3 if page - 3 > 1 else 1 %}
+        {% set end_page = page + 3 if page + 3 < total_pages else total_pages %}
+
+        {% if page > 1 %}
+            <a href="{{ url_for('relatorio_vendas',
+                page=page-1,
+                ordenar_por=request.args.get('ordenar_por'),
+                ordem=request.args.get('ordem'),
+                id=request.args.get('id'),
+                preco=request.args.get('preco'),
+                data_inicio=request.args.get('data_inicio'),
+                data_fim=request.args.get('data_fim')) }}">
+                Anterior
+            </a>
+        {% endif %}
+
+        {% if start_page > 1 %}
+            <a href="{{ url_for('relatorio_vendas',
+                page=1,
+                ordenar_por=request.args.get('ordenar_por'),
+                ordem=request.args.get('ordem'),
+                id=request.args.get('id'),
+                preco=request.args.get('preco'),
+                data_inicio=request.args.get('data_inicio'),
+                data_fim=request.args.get('data_fim')) }}">
+                1
+            </a>
+            {% if start_page > 2 %}
+                ...
+            {% endif %}
+        {% endif %}
+
+        {% for p in range(start_page, end_page + 1) %}
+            {% if p == page %}
+                <strong>{{ p }}</strong>
+            {% else %}
+                <a href="{{ url_for('relatorio_vendas',
+                    page=p,
+                    ordenar_por=request.args.get('ordenar_por'),
+                    ordem=request.args.get('ordem'),
+                    id=request.args.get('id'),
+                    preco=request.args.get('preco'),
+                    data_inicio=request.args.get('data_inicio'),
+                    data_fim=request.args.get('data_fim')) }}">
+                    {{ p }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if end_page < total_pages %}
+            {% if end_page < total_pages - 1 %}
+                ...
+            {% endif %}
+            <a href="{{ url_for('relatorio_vendas',
+                page=total_pages,
+                ordenar_por=request.args.get('ordenar_por'),
+                ordem=request.args.get('ordem'),
+                id=request.args.get('id'),
+                preco=request.args.get('preco'),
+                data_inicio=request.args.get('data_inicio'),
+                data_fim=request.args.get('data_fim')) }}">
+                {{ total_pages }}
+            </a>
+        {% endif %}
+
+        {% if page < total_pages %}
+            <a href="{{ url_for('relatorio_vendas',
+                page=page+1,
+                ordenar_por=request.args.get('ordenar_por'),
+                ordem=request.args.get('ordem'),
+                id=request.args.get('id'),
+                preco=request.args.get('preco'),
+                data_inicio=request.args.get('data_inicio'),
+                data_fim=request.args.get('data_fim')) }}">
+                Próxima
+            </a>
+        {% endif %}
     </div>
 </body>
 </html>

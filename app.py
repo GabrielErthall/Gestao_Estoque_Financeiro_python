@@ -2,6 +2,7 @@ from flask import Flask, request, redirect, url_for, render_template
 from sqlalchemy.orm import sessionmaker
 from models import Produto, Venda, ItemVenda
 from db import engine
+from datetime import datetime
 
 app = Flask(__name__)
 Session = sessionmaker(bind=engine)
@@ -12,7 +13,7 @@ def listar_produtos():
     query = session.query(Produto)
 
     nome = request.args.get("nome")
-    categoria = request.args.get("cateegoria")
+    categoria = request.args.get("categoria")
     cor = request.args.get("cor")
     preco = request.args.get("preco")
     produto_id = request.args.get("id")
@@ -24,13 +25,33 @@ def listar_produtos():
     if cor:
         query = query.filter(Produto.cor.ilike(f"%{cor}%"))
     if preco:
-        query = query.filter(Produto.preco == float(preco))
+        try:
+            query = query.filter(Produto.preco == float(preco))
+        except ValueError:
+            pass
     if produto_id:
-        query = query.filter(Produto.id == int(produto_id))
-    
-    produtos = query.all()
+        try:
+            query = query.filter(Produto.id == int(produto_id))
+        except ValueError:
+            pass
+
+    per_page = 20
+    page = request.args.get("page", 1, type=int)
+    offset = (page - 1) * per_page
+
+    produtos = query.order_by(Produto.id).limit(per_page).offset(offset).all()
+    total = query.count()
+    total_pages = (total + per_page - 1) // per_page
+
     categorias = [c[0] for c in session.query(Produto.categoria).distinct().all()]
-    return render_template("produtos.html", produtos=produtos)
+
+    return render_template(
+        "produtos.html",
+        produtos=produtos,
+        categorias=categorias,
+        page=page,
+        total_pages=total_pages
+    )
 
 
 @app.route("/cadastrar", methods=["GET", "POST"])
@@ -131,9 +152,10 @@ def nova_venda():
         itens = []
         total = 0
 
-        produtos_ids = request.form.getlist("produto_id")
-        quantidades = request.form.getlist("quantidade")
-        precos = request.form.getlist("preco_unitario")
+        produtos_ids = request.form.getlist("produto_id[]")
+        quantidades = request.form.getlist("quantidade[]")
+        precos = request.form.getlist("preco_unitario[]")
+        forma_pagamento = request.form.get("forma_pagamento")
 
         if not (len(produtos_ids) == len(quantidades) == len(precos)):
             return "<h1>Erro: dados incompletos no formulário.</h1>"
@@ -155,12 +177,18 @@ def nova_venda():
             itens.append(item)
             total += qtd * preco_unitario
 
-        venda = Venda(total=total, itens=itens)
+        
+        if not itens or total <= 0:
+            return "<h1>Erro: não é possível criar uma venda sem produtos ou com valor 0.</h1>"
+
+        
+        venda = Venda(total=total, itens=itens, forma_pagamento=forma_pagamento)
         session.add(venda)
         session.commit()
-        return redirect(url_for("listar_produtos"))
+        return redirect(url_for("relatorio_vendas"))
 
     return render_template("nova_venda.html")
+
 
 @app.route("/buscar-produto")
 def buscar_produto():
@@ -190,20 +218,66 @@ def relatorio_vendas():
     session = Session()
     query = session.query(Venda)
 
-    # filtros
-    venda_id = request.args.get("id")
-    preco = request.args.get("preco")
-    data = request.args.get("data")  # exemplo: "2026-01-06"
+    # Filtros
+    data_inicio = request.args.get("data_inicio")
+    data_fim = request.args.get("data_fim")
 
-    if venda_id:
-        query = query.filter(Venda.id == int(venda_id))
-    if preco:
-        query = query.filter(Venda.total == float(preco))
-    if data:
-        query = query.filter(Venda.data.like(f"%{data}%"))
+    if data_inicio:
+        data_inicio = datetime.strptime(data_inicio, "%Y-%m-%d")
+        query = query.filter(Venda.data_hora >= data_inicio)
 
-    vendas = query.order_by(Venda.data.desc()).limit(50).all()
-    return render_template("relatorio_vendas.html", vendas=vendas)
+    if data_fim:
+        data_fim = datetime.strptime(data_fim, "%Y-%m-%d")
+        query = query.filter(Venda.data_hora <= data_fim)
+
+    # Ordenação
+    ordenar_por = request.args.get("ordenar_por", "data")
+    ordem = request.args.get("ordem", "desc")
+
+    if ordenar_por == "id":
+        coluna = Venda.id
+    elif ordenar_por == "total":
+        coluna = Venda.total
+    else:
+        coluna = Venda.data_hora
+
+    if ordem == "asc":
+        query = query.order_by(coluna.asc())
+    else:
+        query = query.order_by(coluna.desc())
+
+    # Paginação
+    page = request.args.get("page", 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
+
+    vendas = query.limit(per_page).offset(offset).all()
+    total = query.count()
+    total_pages = (total + per_page - 1) // per_page
+
+    # Resumo
+    soma_total = sum(v.total for v in vendas)
+
+    resumo_pagamento = {}
+    for v in vendas:
+        resumo_pagamento[v.forma_pagamento] = resumo_pagamento.get(v.forma_pagamento, 0) + v.total
+
+    resumo_categoria = {}
+    for v in vendas:
+        for item in v.itens:
+            produto = session.query(Produto).get(item.produto_id)
+            if produto:
+                categoria = produto.categoria
+                valor = item.quantidade * item.preco_unitario
+                resumo_categoria[categoria] = resumo_categoria.get(categoria, 0) + valor
+
+    return render_template("relatorio_vendas.html",
+                           vendas=vendas,
+                           soma_total=soma_total,
+                           resumo_pagamento=resumo_pagamento,
+                           resumo_categoria=resumo_categoria,
+                           page=page,
+                           total_pages=total_pages)
 
 @app.route("/excluir-venda/<int:id>")
 def excluir_venda(id):
@@ -226,10 +300,11 @@ def editar_venda(id):
     venda = session.query(Venda).get(id)
 
     if not venda:
-        return f"<h1>Venda com ID {id} não encontrada</h1>"
-    
+        return f"<h1>Venda com ID {id} não encontrada.</h1>"
+
     if request.method == "POST":
         total = 0
+
         for item in venda.itens:
             qtd = int(request.form.get(f"quantidade_{item.id}", item.quantidade))
             preco = float(request.form.get(f"preco_{item.id}", item.preco_unitario))
@@ -237,10 +312,19 @@ def editar_venda(id):
             item.quantidade = qtd
             item.preco_unitario = preco
             total += qtd * preco
+
         
+        if total <= 0:
+            for item in venda.itens:
+                session.delete(item)
+            session.delete(venda)
+            session.commit()
+            return "<h1>Venda excluída porque o valor foi zerado.</h1>"
+
         venda.total = total
         session.commit()
         return redirect(url_for("relatorio_vendas"))
+
     return render_template("editar_venda.html", venda=venda)
 
  

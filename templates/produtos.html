@@ -2,73 +2,171 @@
 <html>
 <head>
     <title>Lista de Produtos</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        a.botao {
+            padding: 10px 20px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .vender { background-color: #4CAF50; }
+        .relatorio { background-color: #2196F3; }
+        .paginacao a {
+            margin: 0 5px;
+            text-decoration: none;
+            color: #2196F3;
+        }
+        .paginacao strong {
+            margin: 0 5px;
+            background-color: #2196F3;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body>
     <h2>Buscar Produtos</h2>
-<form method="get" action="{{ url_for('listar_produtos') }}">
-    Nome: <input type="text" name="nome" placeholder="Digite parte do nome">
-    Categoria: <input type="text" id="categoria" name="categoria" placeholder="Digite categoria">
-    Cor: <input type="text" name="cor">
-    Preço: <input type="text" name="preco">
-    ID: <input type="text" name="id">
-    <input type="submit" value="Filtrar">
-</form>
+    <form method="get" action="{{ url_for('listar_produtos') }}">
+        Nome: <input type="text" name="nome" placeholder="Digite parte do nome">
+        Categoria: <input type="text" id="categoria" name="categoria" placeholder="Digite categoria">
+        Cor: <input type="text" name="cor">
+        Preço: <input type="text" name="preco">
+        ID: <input type="text" name="id">
+        <input type="submit" value="Filtrar">
+    </form>
 
-<!-- Lista de categorias para autocomplete -->
-<ul id="listaCategorias" style="border:1px solid #ccc; max-width:200px; display:none; position:absolute; background:#fff; list-style:none; padding:0;">
-    {% for c in categorias %}
-        <li onclick="selecionarCategoria('{{ c }}')" style="padding:5px; cursor:pointer;">{{ c }}</li>
-    {% endfor %}
-</ul>
-
-<script>
-    const inputCategoria = document.getElementById("categoria");
-    const lista = document.getElementById("listaCategorias");
-
-    inputCategoria.addEventListener("keyup", function() {
-        let filtro = inputCategoria.value.toLowerCase();
-        let itens = lista.querySelectorAll("li");
-        let algumVisivel = false;
-
-        itens.forEach(li => {
-            if (li.innerText.toLowerCase().includes(filtro)) {
-                li.style.display = "block";
-                algumVisivel = true;
-            } else {
-                li.style.display = "none";
-            }
-        });
-
-        lista.style.display = algumVisivel ? "block" : "none";
-    });
-
-    function selecionarCategoria(valor) {
-        inputCategoria.value = valor;
-        lista.style.display = "none";
-    }
-</script>
-    <h1>Lista de Produtos</h1>
-    <a href="/cadastrar">[Cadastrar novo produto]</a>
-    <ul>
-        {% for p in produtos %}
-            <li>
-                ID: {{ p.id }} - {{ p.nome }} -- {{ p.categoria }} - {{ p.tamanho }} - {{ p.cor }} - {{ p.quantidade }} - R$ {{ p.preco }}
-                <a href="/editar/{{ p.id }}">[Editar]</a>
-                <a href="/excluir/{{ p.id }}">[Excluir]</a>
-            </li>
+    <!-- Lista de categorias para autocomplete -->
+    <ul id="listaCategorias" style="border:1px solid #ccc; max-width:200px; display:none; position:absolute; background:#fff; list-style:none; padding:0;">
+        {% for c in categorias %}
+            <li onclick="selecionarCategoria('{{ c }}')" style="padding:5px; cursor:pointer;">{{ c }}</li>
         {% endfor %}
     </ul>
-    <div style="text-algin: center; margin-top: 30px:">
-        <a href="{{ url_for('nova_venda') }}" style="padding: 10px 20px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
-            Vender
-        </a>
+
+    <script>
+        const inputCategoria = document.getElementById("categoria");
+        const lista = document.getElementById("listaCategorias");
+
+        inputCategoria.addEventListener("keyup", function() {
+            let filtro = inputCategoria.value.toLowerCase();
+            let itens = lista.querySelectorAll("li");
+            let algumVisivel = false;
+
+            itens.forEach(li => {
+                if (li.innerText.toLowerCase().includes(filtro)) {
+                    li.style.display = "block";
+                    algumVisivel = true;
+                } else {
+                    li.style.display = "none";
+                }
+            });
+
+            lista.style.display = algumVisivel ? "block" : "none";
+        });
+
+        function selecionarCategoria(valor) {
+            inputCategoria.value = valor;
+            lista.style.display = "none";
+        }
+    </script>
+
+    <h1>Lista de Produtos</h1>
+    <a href="/cadastrar">[Cadastrar novo produto]</a>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Tamanho</th>
+                <th>Cor</th>
+                <th>Quantidade</th>
+                <th>Preço</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in produtos %}
+            <tr>
+                <td>{{ p.id }}</td>
+                <td>{{ p.nome }}</td>
+                <td>{{ p.categoria }}</td>
+                <td>{{ p.tamanho }}</td>
+                <td>{{ p.cor if p.cor else "—" }}</td>
+                <td>{{ p.quantidade }}</td>
+                <td>R$ {{ "%.2f"|format(p.preco) }}</td>
+                <td>
+                    <a href="/editar/{{ p.id }}">[Editar]</a>
+                    <a href="/excluir/{{ p.id }}" onclick="return confirm('Tem certeza que deseja excluir?');">[Excluir]</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" style="text-align:center;">Nenhum produto encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Paginação -->
+    <div class="paginacao" style="text-align:center; margin-top:20px;">
+        {% set start_page = page - 3 if page - 3 > 1 else 1 %}
+        {% set end_page = page + 3 if page + 3 < total_pages else total_pages %}
+
+        {% if page > 1 %}
+            <a href="{{ url_for('listar_produtos', page=page-1) }}">Anterior</a>
+        {% endif %}
+
+        <!-- Primeira página -->
+        {% if start_page > 1 %}
+            <a href="{{ url_for('listar_produtos', page=1) }}">1</a>
+            {% if start_page > 2 %}
+                ...
+            {% endif %}
+        {% endif %}
+
+        <!-- Páginas centrais -->
+        {% for p in range(start_page, end_page + 1) %}
+            {% if p == page %}
+                <strong>{{ p }}</strong>
+            {% else %}
+                <a href="{{ url_for('listar_produtos', page=p) }}">{{ p }}</a>
+            {% endif %}
+        {% endfor %}
+
+        <!-- Última página -->
+        {% if end_page < total_pages %}
+            {% if end_page < total_pages - 1 %}
+                ...
+            {% endif %}
+            <a href="{{ url_for('listar_produtos', page=total_pages) }}">{{ total_pages }}</a>
+        {% endif %}
+
+        {% if page < total_pages %}
+            <a href="{{ url_for('listar_produtos', page=page+1) }}">Próxima</a>
+        {% endif %}
     </div>
 
-    <div style="text-align: center; margin-top: 15px:">
-        <a href="{{ url_for('relatorio_vendas') }}"
-        style="padding: 10px 20px; background-color: #2196F3; color: white; text-decoration: none; border-radius: 5px;">
-        Relatório de Vendas
-    </a>
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="{{ url_for('nova_venda') }}" class="botao vender">Vender</a>
+    </div>
+
+    <div style="text-align: center; margin-top: 15px;">
+        <a href="{{ url_for('relatorio_vendas') }}" class="botao relatorio">Relatório de Vendas</a>
     </div>
 </body>
 </html>
