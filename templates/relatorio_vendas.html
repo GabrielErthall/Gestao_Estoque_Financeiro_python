@@ -42,8 +42,10 @@
             <option value="" {% if not request.args.get('forma_pagamento') %}selected{% endif %}>Todos</option>
             <option value="Dinheiro" {% if request.args.get('forma_pagamento') == 'Dinheiro' %}selected{% endif %}>Dinheiro</option>
             <option value="Pix" {% if request.args.get('forma_pagamento') == 'Pix' %}selected{% endif %}>Pix</option>
-            <option value="Cartão Débito" {% if request.args.get('forma_pagamento') == 'Cartão Débito' %}selected{% endif %}>Cartão Débito</option>
-            <option value="Cartão Crédito" {% if request.args.get('forma_pagamento') == 'Cartão Crédito' %}selected{% endif %}>Cartão Crédito</option>
+            <option value="Débito" {% if request.args.get('forma_pagamento') == 'Débito' %}selected{% endif %}>Cartão Débito</option>
+            <option value="Crédito" {% if request.args.get('forma_pagamento') == 'Crédito' %}selected{% endif %}>Cartão Crédito</option>
+
+
         </select>
 
         <input type="submit" value="Filtrar">
